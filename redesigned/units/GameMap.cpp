@@ -153,6 +153,7 @@ void GameMap::initMap(){
 }  
 
 void GameMap::_init() {
+  pthread_mutex_lock(&lock);
 
   grid_ = (Unit***) Malloc(sizeof(Unit**) * max_x_ + 1);
 
@@ -160,9 +161,15 @@ void GameMap::_init() {
     grid_[x] = (Unit**) Malloc(sizeof(Unit*) * max_y_ + 1);
     memset(grid_[x], 0, sizeof(Unit*) * max_y_ + 1);
   }
+
+  pthread_mutex_unlock(&lock);
 }
 
 GameMap::GameMap(int max_x, int max_y): max_x_(max_x), max_y_(max_y) {
+  if (pthread_mutex_init(&lock, NULL) != 0)
+  {
+    printf("\n mutex init failed\n");
+  }
   _init();
 }
 
@@ -220,6 +227,8 @@ void GameMap::merge(GameMap& map1, GameMap& map2)
 // I write this so that I might be able to see if things work correctly
 void GameMap::printGrid() {
 
+  pthread_mutex_lock(&lock);
+
   int x, y;
   for (y=0; y<=max_y_; y++) {
     for (x=0; x<=max_x_; x++) {
@@ -232,6 +241,7 @@ void GameMap::printGrid() {
     }
     printf("\n");
   }
+  pthread_mutex_unlock(&lock);
 }
 
 GameMap::~GameMap() {
@@ -283,7 +293,9 @@ void GameMap::build(Team &team) {
 
 void GameMap::build(Team teams[]) {
 
-  int totalTeams = 2;
+  pthread_mutex_lock(&lock);
+
+  size_t totalTeams = 2;
   reset();
 
   for (size_t i=0; i<totalTeams; i++) {
@@ -301,6 +313,8 @@ void GameMap::build(Team teams[]) {
       _helperBuild(*it, PLAYER, (*it)->getPos(), team_no);
 
   }
+
+  pthread_mutex_unlock(&lock);
 }
 
 void GameMap::reset() {
@@ -313,6 +327,8 @@ void GameMap::reset() {
 
 void GameMap::addUnit(Unit *unit, Point pos) {
 
+  pthread_mutex_lock(&lock);
+
   if (grid_[pos.x][pos.y] == NULL)
   {
     grid_[pos.x][pos.y] = unit;
@@ -320,9 +336,12 @@ void GameMap::addUnit(Unit *unit, Point pos) {
 
   }
 
+  pthread_mutex_unlock(&lock);
 }
 
 void GameMap::removeUnit(Unit *unit) {
+
+  pthread_mutex_lock(&lock);
 
   std::map<int, Point>::iterator it;
 
@@ -336,9 +355,13 @@ void GameMap::removeUnit(Unit *unit) {
 
     units_.erase(it);
   }
+
+  pthread_mutex_unlock(&lock);
 }
 
 void GameMap::moveUnit(Unit *unit, Point new_pos) {
+
+  pthread_mutex_lock(&lock);
 
   std::map<int, Point>::iterator it;
 
@@ -352,6 +375,8 @@ void GameMap::moveUnit(Unit *unit, Point new_pos) {
 
   grid_[new_pos.x][new_pos.y] = unit;
   units_[unit->id] = new_pos;
+
+  pthread_mutex_unlock(&lock);
 }
 
 // People laugh at this wrapper.
@@ -369,6 +394,9 @@ void * GameMap::Malloc(size_t size) {
  
 Unit *GameMap::getUnitFromId(int id) {
 
+
+  pthread_mutex_lock(&lock);
+
 	Unit *unit;
 
 	std::map<int, Point>::iterator it;
@@ -381,32 +409,44 @@ Unit *GameMap::getUnitFromId(int id) {
 		unit = grid_[pos.x][pos.y];
 	}
 
+   pthread_mutex_unlock(&lock);
+
 	return unit;
 }
 
 int GameMap::getTeamNo(int id) {
 
-   Unit *unit;
+  pthread_mutex_lock(&lock);
+   
+  Unit *unit;
+   int team_no = TEAM_NOT_FOUND;
    
    unit = getUnitFromId(id);
-   if (unit == NULL)
-	return TEAM_NOT_FOUND;
+   if (unit != NULL)
+       team_no = unit->team;
 
-   else
-        return unit->team;
+   pthread_mutex_unlock(&lock);
+
+   return team_no;
 }
 
 
 Unit *GameMap::getUnit(Point pos) {
 
+   pthread_mutex_lock(&lock);
+   Unit *unit;
+
      if (!isValidPos(pos))
 	return NULL;
 
-     return grid_[pos.x][pos.y];
+     unit - grid_[pos.x][pos.y];
+     pthread_mutex_unlock(&lock);
+
+     return unit;
 }
 
 #ifdef TEST_MAP  
-// Test with: g++ GameMap.cpp -DTEST_MAP -g -Wall ../build/units/tower.o ../build/units/unit.o
+// Test with: g++ GameMap.cpp -DTEST_MAP -lpthread -g -Wall ../build/units/tower.o ../build/units/unit.o
 
 #include <vector>
 #include "tower.h"
