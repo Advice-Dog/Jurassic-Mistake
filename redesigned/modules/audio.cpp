@@ -38,7 +38,7 @@ int Audio::playMusic(const char* filename)
     if (!music_.openFromFile(filename)) //if problem opening the file
         return EXIT_FAILURE;    //return an error
 
-	music_.setVolume(20);
+	music_.setVolume(100);
     music_.play();
 
     return EXIT_SUCCESS;
