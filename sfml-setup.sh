@@ -5,7 +5,8 @@ echo "Which distribution are you running?"
 echo "  [0] Fedora (or CentOS, RedHat, etc.)"
 echo "  [1] Debian (or Ubuntu, Mint, etc.)"
 
-read -p "Choice [0,1]: " distro
+#read -p "Choice [0,1]: " distro
+distro=0
 case $distro in
     0) yum install -y wget git cmake mesa-libGL-devel libXrandr-devel freetype-devel glew-devel libjpeg-devel openal-soft-devel libsndfile-devel fontconfig-devel gcc-c++
         ;;
